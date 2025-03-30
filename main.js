@@ -18,7 +18,7 @@ app.whenReady().then(() => {
 });
 
 function createTray() {
-  tray = new Tray(path.join(__dirname, "icon.png"));
+  tray = new Tray(path.join(__dirname, "media", "icon.jpg"));
   tray.setToolTip("MeetingBar Clone");
   tray.setTitle(" 📅");
 
@@ -60,7 +60,7 @@ function sendSystemNotification(meeting) {
 }
 
 function playSound() {
-  const soundPath = path.join(__dirname, "chime.m4a");
+  const soundPath = path.join(__dirname, "media", "chime.m4a");
   soundProcess = exec(`afplay "${soundPath}"`);
 }
 

@@ -7,6 +7,10 @@ let tray = null;
 let soundProcess = null;
 let meetings = [];
 
+const dummyMeetings = [
+  { title: "Daily Standup", time: "11:00 AM", link: "https://zoom.us/j/123456" }
+];
+
 app.whenReady().then(() => {
   createTray();
   authorize((auth) => {
@@ -16,11 +20,16 @@ app.whenReady().then(() => {
       scheduleNotifications();
     });
   });
+
+  // Trigger system notification after 10 seconds
+  setTimeout(() => {
+    sendSystemNotification(meetings[0]);
+  }, 10000);
 });
 
 function createTray() {
   // create a new native image from icon
-  const icon = nativeImage.createFromPath('./icon2.jpg');
+  const icon = nativeImage.createFromPath('./media/icon.jpg');
   // if you want to resize it, be careful, it creates a copy
   const trayIcon = icon.resize({ width: 16 });
   // here is the important part (has to be set on the resized version)
@@ -85,7 +94,7 @@ function sendSystemNotification(meeting) {
 }
 
 function playSound() {
-  const soundPath = path.join(__dirname, "notification.mp3");
+  const soundPath = path.join(__dirname, "media", "chime.m4a");
   soundProcess = exec(`afplay "${soundPath}"`);
 }
 
