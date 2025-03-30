@@ -1,30 +1,51 @@
-const { app, Menu, Tray, shell, Notification } = require("electron");
+const { app, Menu, Tray, shell, Notification, nativeImage } = require("electron");
 const path = require("path");
 const { exec } = require("child_process");
+const { authorize, getUpcomingEvents } = require("./google-calendar");
 
 let tray = null;
-let soundProcess = null; // Store the sound process
+let soundProcess = null;
+let meetings = [];
 
-const meetings = [
+const dummyMeetings = [
   { title: "Daily Standup", time: "11:00 AM", link: "https://zoom.us/j/123456" }
 ];
 
 app.whenReady().then(() => {
   createTray();
+  authorize((auth) => {
+    getUpcomingEvents(auth, (events) => {
+      meetings = events;
+      updateTrayMenu();
+      scheduleNotifications();
+    });
+  });
+
   // Trigger system notification after 10 seconds
   setTimeout(() => {
-    sendSystemNotification(meetings[0]);
+    sendSystemNotification(dummyMeetings[0]);
   }, 10000);
 });
 
 function createTray() {
-  tray = new Tray(path.join(__dirname, "media", "icon.jpg"));
-  tray.setToolTip("MeetingBar Clone");
-  tray.setTitle(" 📅");
+  // create a new native image from icon
+  const icon = nativeImage.createFromPath('./media/icon.jpg');
+  // if you want to resize it, be careful, it creates a copy
+  const trayIcon = icon.resize({ width: 16 });
+  // here is the important part (has to be set on the resized version)
+  trayIcon.setTemplateImage(true);
 
-  const menuItems = meetings.map(meeting => ({
-    label: `${meetings[0].title} - ${meetings[0].time}`,
-    click: () => shell.openExternal(meetings[0].link)
+  tray = new Tray(trayIcon)
+  // tray = new Tray(path.join(__dirname, "icon.jpg"));
+  tray.setToolTip("MeetingBar Clone");
+  // tray.setTitle(" 📅");
+  updateTrayMenu();
+}
+
+function updateTrayMenu() {
+  const menuItems = meetings.map((meeting) => ({
+    label: `${meeting.title} - ${meeting.time}`,
+    click: () => shell.openExternal(meeting.link),
   }));
 
   const contextMenu = Menu.buildFromTemplate([
@@ -32,28 +53,41 @@ function createTray() {
     { type: "separator" },
     ...menuItems,
     { type: "separator" },
-    { label: "Quit", role: "quit" }
+    { label: "Quit", role: "quit" },
   ]);
 
   tray.setContextMenu(contextMenu);
 }
 
+function scheduleNotifications() {
+  meetings.forEach((meeting) => {
+    const meetingTime = new Date(meeting.time).getTime();
+    const now = Date.now();
+    const timeUntilMeeting = meetingTime - now;
+
+    if (timeUntilMeeting > 0) {
+      console.log("scheduling notif for", timeUntilMeeting);
+      setTimeout(() => sendSystemNotification(meeting), timeUntilMeeting);
+    }
+  });
+}
+
 function sendSystemNotification(meeting) {
-  playSound(); // Start playing sound
+  playSound();
 
   const notification = new Notification({
     title: "Meeting Reminder",
     body: `${meeting.title} at ${meeting.time}`,
-    silent: false // Allow system sound
+    silent: false,
   });
 
   notification.on("click", () => {
     shell.openExternal(meeting.link);
-    stopSound(); // Stop sound when clicked
+    stopSound();
   });
 
   notification.on("close", () => {
-    stopSound(); // Stop sound when notification is closed
+    stopSound();
   });
 
   notification.show();
