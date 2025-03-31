@@ -22,31 +22,56 @@ app.whenReady().then(() => {
   });
 
   // Trigger system notification after 10 seconds
-  setTimeout(() => {
-    sendSystemNotification(dummyMeetings[0]);
-  }, 10000);
+  // setTimeout(() => {
+  //   sendSystemNotification(dummyMeetings[0]);
+  // }, 10000);
 });
 
 function createTray() {
-  // create a new native image from icon
-  const icon = nativeImage.createFromPath('./media/icon.jpg');
-  // if you want to resize it, be careful, it creates a copy
-  const trayIcon = icon.resize({ width: 16 });
-  // here is the important part (has to be set on the resized version)
-  trayIcon.setTemplateImage(true);
+  const iconPath = path.join(__dirname, "media", "icon.jpg");
+  const trayIcon = nativeImage.createFromPath(iconPath).resize({ width: 16 });
 
-  tray = new Tray(trayIcon)
-  // tray = new Tray(path.join(__dirname, "icon.jpg"));
+  trayIcon.setTemplateImage(true); // Ensure it's visible in dark mode
+  tray = new Tray(trayIcon);
   tray.setToolTip("MeetingBar Clone");
   // tray.setTitle(" 📅");
   updateTrayMenu();
 }
 
+function isMeetingStarted(meetingStartTime) {
+  return new Date(meetingStartTime).getTime() <= Date.now();
+}
+
 function updateTrayMenu() {
-  const menuItems = meetings.map((meeting) => ({
-    label: `${meeting.title} - ${meeting.time}`,
-    click: () => shell.openExternal(meeting.link),
-  }));
+  const zoomIcon = nativeImage.createFromPath(path.join(__dirname, "media/zoom.png")).resize({ width: 16, height: 16 });
+  const menuItems = meetings.map(({ start, end, title, link }) => {
+    const formatTime = (date) => {
+      const d = new Date(date);
+      return d.toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: false 
+      })
+    };
+  
+    // Format time and ensure alignment using padStart()
+    const isZoom = link.includes("zoom.us");
+    const startTime = formatTime(start).padStart((isZoom ? 0 : 11), " ");
+    const endTime = formatTime(end).padStart(15, " ");
+    const runningIcon = isMeetingStarted(start) ? "🏃" : "";
+
+    return {
+      label: `${startTime} ${endTime}        ${title} ${runningIcon}`,
+      icon: isZoom ? zoomIcon : null,
+      click: () => shell.openExternal(link),
+    };
+  });
+
+  const runningMeetings = meetings.filter(meeting => isMeetingStarted(meeting.start) && meeting.status === "confirmed" && meeting.title != "Home");
+  console.log("running meetings:", runningMeetings);
+  if (runningMeetings && runningMeetings.length > 0) {
+    tray.setTitle(runningMeetings[0].title);
+  }
 
   const contextMenu = Menu.buildFromTemplate([
     { label: "Upcoming Meetings", enabled: false },

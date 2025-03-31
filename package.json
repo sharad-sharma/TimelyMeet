@@ -3,16 +3,42 @@
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "electron": "^35.1.2",
+    
     "googleapis": "^148.0.0",
     "open": "^10.1.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^26.0.12",
+    "electron": "^35.1.2"
+  },
+  "build": {
+    "appId": "com.yourcompany.meetingbar",
+    "productName": "Meeting Bar Clone",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/.cache",
+      "!node_modules/electron-builder"
+    ],
+    "asar": false,
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
 }

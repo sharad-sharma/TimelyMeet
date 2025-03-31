@@ -64,7 +64,11 @@ function getUpcomingEvents(auth, callback) {
       const events = res.data.items.map((event) => ({
         title: event.summary,
         time: event.start.dateTime || event.start.date,
-        link: event.hangoutLink || event.htmlLink,
+        link: event.location || event.htmlLink,
+        status: event.status,
+        start: event.start.dateTime || event.start.date,
+        end: event.end.dateTime || event.end.date,
+        organizer: event.organizer || event.creator,
       }));
       console.log("events:", events);
       callback(events);
