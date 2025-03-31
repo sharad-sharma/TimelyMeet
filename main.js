@@ -14,18 +14,24 @@ const dummyMeetings = [
 app.whenReady().then(() => {
   createTray();
   authorize((auth) => {
-    getUpcomingEvents(auth, (events) => {
-      meetings = events;
-      updateTrayMenu();
-      scheduleNotifications();
-    });
+    // Fetch events immediately
+    fetchAndUpdateEvents(auth);
+
+    // Set interval to fetch events regularly (every 5 minutes)
+    setInterval(() => fetchAndUpdateEvents(auth), 5 * 60 * 1000); // 5 min
   });
 
-  // Trigger system notification after 10 seconds
-  // setTimeout(() => {
-  //   sendSystemNotification(dummyMeetings[0]);
-  // }, 10000);
+  setInterval(updateTrayMenu, 1000 * 30);
 });
+
+// Function to fetch and update events
+function fetchAndUpdateEvents(auth) {
+  getUpcomingEvents(auth, (events) => {
+    meetings = events;
+    updateTrayMenu();
+    scheduleNotifications();
+  });
+}
 
 function createTray() {
   const iconPath = path.join(__dirname, "media", "icon.jpg");
@@ -67,11 +73,38 @@ function updateTrayMenu() {
     };
   });
 
-  const runningMeetings = meetings.filter(meeting => isMeetingStarted(meeting.start) && meeting.status === "confirmed" && meeting.title != "Home");
-  console.log("running meetings:", runningMeetings);
-  if (runningMeetings && runningMeetings.length > 0) {
-    tray.setTitle(runningMeetings[0].title);
-  }
+  const upcomingMeeting = meetings.filter(meeting => meeting.status === "confirmed" && meeting.title != "Home");
+
+  console.log("upcoming meetings:", upcomingMeeting);
+
+  if (upcomingMeeting && upcomingMeeting.length > 0) {
+    const nextMeeting = upcomingMeeting[0];
+    const startTime = new Date(nextMeeting.start);
+    
+    // Calculate the time difference in seconds
+    const timeDiff = Math.round((startTime.getTime() - Date.now()) / 1000);
+
+    // Convert time into a readable format (smart formatting)
+    let timeDisplay;
+    if (timeDiff < 60) {
+        timeDisplay = `${timeDiff}s`;  // Show seconds if less than 1 min
+    } else if (timeDiff < 3600) {
+        timeDisplay = `${Math.floor(timeDiff / 60)}m`;  // Show minutes if less than 1 hr
+    } else {
+        timeDisplay = `${Math.floor(timeDiff / 3600)}h`;  // Show hours if more than 1 hr
+    }
+
+    // Format the title
+    let title = ` ${nextMeeting.title}`;
+    if (timeDiff > 0) {
+        title += ` ⏳ in ${timeDisplay}`;
+    } else {
+        title += ` 🔴 LIVE`;
+    }
+
+    // Update the menu bar title
+    tray.setTitle(title);
+}
 
   const contextMenu = Menu.buildFromTemplate([
     { label: "Upcoming Meetings", enabled: false },
@@ -84,15 +117,21 @@ function updateTrayMenu() {
   tray.setContextMenu(contextMenu);
 }
 
+const scheduledNotifications = [];
+
 function scheduleNotifications() {
+  scheduledNotifications.forEach(clearTimeout);
+  scheduledNotifications.length = 0; // Reset the array
+
   meetings.forEach((meeting) => {
-    const meetingTime = new Date(meeting.time).getTime();
+    const meetingTime = new Date(meeting.start).getTime(); // Use 'start' instead of 'time'
     const now = Date.now();
     const timeUntilMeeting = meetingTime - now;
 
     if (timeUntilMeeting > 0) {
-      console.log("scheduling notif for", timeUntilMeeting);
-      setTimeout(() => sendSystemNotification(meeting), timeUntilMeeting);
+      console.log("Scheduling notification for", timeUntilMeeting);
+      const scheduledNotif = setTimeout(() => sendSystemNotification(meeting), timeUntilMeeting);
+      scheduledNotifications.push(scheduledNotif);
     }
   });
 }
