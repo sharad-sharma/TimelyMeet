@@ -1,20 +1,25 @@
 const fs = require("fs");
 const path = require("path");
+const { app } = require("electron");
 const { google } = require("googleapis");
-const open = require("open");
+const open = require("open").default;
+const express = require("express");
+const destroyer = require("server-destroy");
 
 const SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"];
-const TOKEN_PATH = path.join(__dirname, "token.json");
-
-// Load credentials from the credentials file
 const CREDENTIALS_PATH = path.join(__dirname, "credentials.json");
+const TOKEN_PATH = path.join(app.getPath("userData"), "token.json");
 
 function authorize(callback) {
   const content = fs.readFileSync(CREDENTIALS_PATH);
   const credentials = JSON.parse(content);
+  const { client_secret, client_id } = credentials.installed;
 
-  const { client_secret, client_id, redirect_uris } = credentials.installed;
-  const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+  const oAuth2Client = new google.auth.OAuth2(
+    client_id,
+    client_secret,
+    "http://localhost:3000/oauth2callback"
+  );
 
   // Check if token already exists
   if (fs.existsSync(TOKEN_PATH)) {
@@ -22,27 +27,36 @@ function authorize(callback) {
     oAuth2Client.setCredentials(JSON.parse(token));
     callback(oAuth2Client);
   } else {
-    getNewToken(oAuth2Client, callback);
+    getAccessToken(oAuth2Client, callback);
   }
 }
 
 // Get a new token if one doesn’t exist
-function getNewToken(oAuth2Client, callback) {
+function getAccessToken(oAuth2Client, callback) {
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: "offline",
     scope: SCOPES,
   });
 
-  console.log("Authorize this app by visiting this URL:", authUrl);
-  // open(authUrl);
+  const app = express();
+  const server = app.listen(3000, () => {
+    console.log("Listening on port 3000...");
+    open(authUrl);
+  });
 
-  console.log("Enter the code from the browser:");
-  process.stdin.once("data", (code) => {
-    oAuth2Client.getToken(code.toString().trim(), (err, token) => {
-      if (err) return console.error("Error getting token", err);
+  destroyer(server);
+
+  app.get("/oauth2callback", (req, res) => {
+    const code = req.query.code;
+    res.send("Authentication successful! You can close this window.");
+
+    server.destroy();
+
+    oAuth2Client.getToken(code, (err, token) => {
+      if (err) return console.error("Error retrieving access token", err);
       oAuth2Client.setCredentials(token);
       fs.writeFileSync(TOKEN_PATH, JSON.stringify(token));
-      console.log("Token saved!");
+      console.log("Token saved to", TOKEN_PATH);
       callback(oAuth2Client);
     });
   });
@@ -60,7 +74,7 @@ function getUpcomingEvents(auth, callback) {
       orderBy: "startTime",
     },
     (err, res) => {
-      if (err) return console.error("Error fetching events:", err);
+      if (err) return console.error("API Error:", err);
       const events = res.data.items.map((event) => ({
         title: event.summary,
         time: event.start.dateTime || event.start.date,
@@ -70,7 +84,6 @@ function getUpcomingEvents(auth, callback) {
         end: event.end.dateTime || event.end.date,
         organizer: event.organizer || event.creator,
       }));
-      console.log("events:", events);
       callback(events);
     }
   );

@@ -1,7 +1,7 @@
 const { app, Menu, Tray, shell, Notification, nativeImage, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const { exec } = require("child_process");
-const { authorize, getUpcomingEvents } = require("./google-calendar");
+const { authorize, getUpcomingEvents } = require("./auth");
 
 let tray = null;
 let soundProcess = null;

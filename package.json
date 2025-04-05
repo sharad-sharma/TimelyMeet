@@ -11,13 +11,14 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    
+    "express": "^5.1.0",
     "googleapis": "^148.0.0",
-    "open": "^10.1.0"
+    "open": "^10.1.0",
+    "server-destroy": "^1.0.1"
   },
   "devDependencies": {
-    "electron-builder": "^26.0.12",
-    "electron": "^35.1.2"
+    "electron": "^35.1.2",
+    "electron-builder": "^26.0.12"
   },
   "build": {
     "appId": "com.yourcompany.meetingbar",
