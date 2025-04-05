@@ -10,7 +10,7 @@ let meetings = [];
 let notifWindow = null; // 🆕 Added
 
 const dummyMeetings = [
-  { title: "Daily Standup", time: "2025-04-07T11:00:00+05:30", start: "2025-04-07T11:00:00+05:30", link: "https://zoom.us/j/123456" }
+  { title: "Daily Standup", time: "2025-04-07T11:00:00+05:30", start: "2025-04-07T11:00:00+05:30", end: "2025-04-07T12:00:00+05:30", link: "https://zoom.us/j/123456" }
 ];
 
 app.on("window-all-closed", (e) => {
