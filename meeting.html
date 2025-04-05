@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Upcoming Meeting</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: white;
+      color: black;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #1e1e1e;
+        color: #f0f0f0;
+      }
+
+      button {
+        background-color: #333;
+        color: white;
+      }
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    button {
+      padding: 8px 14px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .actions {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <h2 id="title">Meeting</h2>
+  <p><strong>Time:</strong> <span id="time">--</span></p>
+  <p><strong>Link:</strong> <a id="link" href="#" target="_blank">--</a></p>
+  <div class="actions">
+    <button id="join">Join Meeting</button>
+    <button id="close">Close</button>
+  </div>
+
+  <script>
+    window.electronAPI.onMeetingData((_event, meeting) => {
+      document.getElementById("title").innerText = meeting.title;
+      document.getElementById("time").innerText = new Date(meeting.start).toLocaleTimeString();
+      const link = document.getElementById("link");
+      link.href = meeting.link;
+      link.innerText = meeting.link;
+
+      document.getElementById("join").onclick = () => {
+        window.electronAPI.openExternal(meeting.link);
+        window.electronAPI.dismissNotification();
+      };
+
+      document.getElementById("close").onclick = () => {
+        window.electronAPI.dismissNotification(); // 👈 just close & stop sound
+      };
+    });
+  </script>
+</body>
+
+</html>

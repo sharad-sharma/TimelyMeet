@@ -1,15 +1,40 @@
-const { app, Menu, Tray, shell, Notification, nativeImage } = require("electron");
+const { app, Menu, Tray, shell, Notification, nativeImage, BrowserWindow } = require("electron");
 const path = require("path");
 const { exec } = require("child_process");
 const { authorize, getUpcomingEvents } = require("./google-calendar");
+const fs = require("fs");
 
 let tray = null;
 let soundProcess = null;
 let meetings = [];
+let notifWindow = null; // 🆕 Added
 
 const dummyMeetings = [
-  { title: "Daily Standup", time: "11:00 AM", link: "https://zoom.us/j/123456" }
+  { title: "Daily Standup", time: "2025-04-07T11:00:00+05:30", start: "2025-04-07T11:00:00+05:30", link: "https://zoom.us/j/123456" }
 ];
+
+app.on("window-all-closed", (e) => {
+  // Prevent quitting the app when all windows are closed
+  e.preventDefault();
+});
+
+const { ipcMain } = require("electron");
+
+ipcMain.on("open-external", (event, url) => {
+  if (url) {
+    shell.openExternal(url);
+  }
+});
+
+ipcMain.on("dismiss-notification", () => {
+  if (notifWindow) {
+    notifWindow.close();     // Close the popup window
+    notifWindow = null;
+  }
+
+  stopSound();               // Stop any ongoing sound
+});
+
 
 app.whenReady().then(() => {
   createTray();
@@ -22,6 +47,9 @@ app.whenReady().then(() => {
   });
 
   setInterval(updateTrayMenu, 1000 * 30);
+  setTimeout(() => {
+    sendSystemNotification(dummyMeetings[0]);
+  }, 10000);
 });
 
 // Function to fetch and update events
@@ -148,13 +176,18 @@ function sendSystemNotification(meeting) {
   notification.on("click", () => {
     shell.openExternal(meeting.link);
     stopSound();
+    if (notifWindow) notifWindow.close(); // 🆕 Added
   });
 
   notification.on("close", () => {
     stopSound();
+    if (notifWindow) notifWindow.close(); // 🆕 Added
   });
 
   notification.show();
+
+  // 🆕 Show popup window with meeting info
+  createMeetingWindow(meeting); // 🆕 Added
 }
 
 function playSound() {
@@ -167,4 +200,36 @@ function stopSound() {
     soundProcess.kill();
     soundProcess = null;
   }
+}
+
+// 🆕 Added: create window to show meeting info
+function createMeetingWindow(meeting) {
+  if (notifWindow) {
+    notifWindow.close(); // Close previous one if open
+  }
+
+  notifWindow = new BrowserWindow({
+    width: 360,
+    height: 220,
+    title: "Upcoming Meeting",
+    alwaysOnTop: true,
+    resizable: true,
+    frame: false,
+    transparent: false,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"), // 🆕 Required for ipcRenderer
+      nodeIntegration: false,
+      contextIsolation: true
+    },
+  });
+
+  notifWindow.loadFile(path.join(__dirname, "meeting.html"));
+
+  notifWindow.once("ready-to-show", () => {
+    notifWindow.webContents.send("meeting-data", meeting);
+  });
+
+  notifWindow.on("closed", () => {
+    notifWindow = null;
+  });
 }
