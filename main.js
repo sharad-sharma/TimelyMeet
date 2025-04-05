@@ -53,13 +53,13 @@ function updateTrayMenu() {
   const menuItems = meetings.map(({ start, end, title, link }) => {
     const formatTime = (date) => {
       const d = new Date(date);
-      return d.toLocaleTimeString([], { 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        hour12: false 
+      return d.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
       })
     };
-  
+
     // Format time and ensure alignment using padStart()
     const isZoom = link.includes("zoom.us");
     const startTime = formatTime(start).padStart((isZoom ? 0 : 11), " ");
@@ -80,31 +80,31 @@ function updateTrayMenu() {
   if (upcomingMeeting && upcomingMeeting.length > 0) {
     const nextMeeting = upcomingMeeting[0];
     const startTime = new Date(nextMeeting.start);
-    
+
     // Calculate the time difference in seconds
     const timeDiff = Math.round((startTime.getTime() - Date.now()) / 1000);
 
     // Convert time into a readable format (smart formatting)
     let timeDisplay;
     if (timeDiff < 60) {
-        timeDisplay = `${timeDiff}s`;  // Show seconds if less than 1 min
+      timeDisplay = `${timeDiff}s`;  // Show seconds if less than 1 min
     } else if (timeDiff < 3600) {
-        timeDisplay = `${Math.floor(timeDiff / 60)}m`;  // Show minutes if less than 1 hr
+      timeDisplay = `${Math.floor(timeDiff / 60)}m`;  // Show minutes if less than 1 hr
     } else {
-        timeDisplay = `${Math.floor(timeDiff / 3600)}h`;  // Show hours if more than 1 hr
+      timeDisplay = `${Math.floor(timeDiff / 3600)}h`;  // Show hours if more than 1 hr
     }
 
     // Format the title
     let title = ` ${nextMeeting.title}`;
     if (timeDiff > 0) {
-        title += ` ⏳ in ${timeDisplay}`;
+      title += ` ⏳ in ${timeDisplay}`;
     } else {
-        title += ` 🔴 LIVE`;
+      title += ` 🟢 LIVE`;
     }
 
     // Update the menu bar title
     tray.setTitle(title);
-}
+  }
 
   const contextMenu = Menu.buildFromTemplate([
     { label: "Upcoming Meetings", enabled: false },

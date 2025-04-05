@@ -12,7 +12,7 @@ const CREDENTIALS_PATH = path.join(__dirname, "credentials.json");
 function authorize(callback) {
   const content = fs.readFileSync(CREDENTIALS_PATH);
   const credentials = JSON.parse(content);
-  
+
   const { client_secret, client_id, redirect_uris } = credentials.installed;
   const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
