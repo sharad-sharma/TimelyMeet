@@ -1,13 +1,12 @@
-const { app, Menu, Tray, shell, Notification, nativeImage, BrowserWindow } = require("electron");
+const { app, Menu, Tray, shell, Notification, nativeImage, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const { exec } = require("child_process");
 const { authorize, getUpcomingEvents } = require("./google-calendar");
-const fs = require("fs");
 
 let tray = null;
 let soundProcess = null;
 let meetings = [];
-let notifWindow = null; // 🆕 Added
+let notifWindow = null;
 
 const dummyMeetings = [
   { title: "Daily Standup", time: "2025-04-07T11:00:00+05:30", start: "2025-04-07T11:00:00+05:30", end: "2025-04-07T12:00:00+05:30", link: "https://zoom.us/j/123456" }
@@ -18,8 +17,6 @@ app.on("window-all-closed", (e) => {
   e.preventDefault();
 });
 
-const { ipcMain } = require("electron");
-
 ipcMain.on("open-external", (event, url) => {
   if (url) {
     shell.openExternal(url);
@@ -28,15 +25,14 @@ ipcMain.on("open-external", (event, url) => {
 
 ipcMain.on("dismiss-notification", () => {
   if (notifWindow) {
-    notifWindow.close();     // Close the popup window
+    notifWindow.close();
     notifWindow = null;
   }
-
-  stopSound();               // Stop any ongoing sound
+  stopSound();
 });
 
-
 app.whenReady().then(() => {
+  // app.dock.setIcon(path.join(__dirname, "media", "icon.jpg"));
   createTray();
   authorize((auth) => {
     // Fetch events immediately
@@ -47,9 +43,6 @@ app.whenReady().then(() => {
   });
 
   setInterval(updateTrayMenu, 1000 * 30);
-  setTimeout(() => {
-    sendSystemNotification(dummyMeetings[0]);
-  }, 10000);
 });
 
 // Function to fetch and update events
@@ -68,7 +61,6 @@ function createTray() {
   trayIcon.setTemplateImage(true); // Ensure it's visible in dark mode
   tray = new Tray(trayIcon);
   tray.setToolTip("MeetingBar Clone");
-  // tray.setTitle(" 📅");
   updateTrayMenu();
 }
 
@@ -130,7 +122,6 @@ function updateTrayMenu() {
       title += ` 🟢 LIVE`;
     }
 
-    // Update the menu bar title
     tray.setTitle(title);
   }
 
@@ -176,18 +167,17 @@ function sendSystemNotification(meeting) {
   notification.on("click", () => {
     shell.openExternal(meeting.link);
     stopSound();
-    if (notifWindow) notifWindow.close(); // 🆕 Added
+    if (notifWindow) notifWindow.close();
   });
 
   notification.on("close", () => {
     stopSound();
-    if (notifWindow) notifWindow.close(); // 🆕 Added
+    if (notifWindow) notifWindow.close();
   });
 
   notification.show();
 
-  // 🆕 Show popup window with meeting info
-  createMeetingWindow(meeting); // 🆕 Added
+  createMeetingWindow(meeting);
 }
 
 function playSound() {
@@ -202,7 +192,6 @@ function stopSound() {
   }
 }
 
-// 🆕 Added: create window to show meeting info
 function createMeetingWindow(meeting) {
   if (notifWindow) {
     notifWindow.close(); // Close previous one if open
@@ -217,7 +206,7 @@ function createMeetingWindow(meeting) {
     frame: false,
     transparent: false,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"), // 🆕 Required for ipcRenderer
+      preload: path.join(__dirname, "preload.js"), // Required for ipcRenderer
       nodeIntegration: false,
       contextIsolation: true
     },

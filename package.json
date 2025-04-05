@@ -21,7 +21,8 @@
   },
   "build": {
     "appId": "com.yourcompany.meetingbar",
-    "productName": "Meeting Bar Clone",
+    "productName": "TimelyMeet",
+    "icon": "media/icon.png",
     "directories": {
       "output": "dist"
     },
