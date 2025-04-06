@@ -49,3 +49,8 @@ TimelyMeet uses a secure OAuth2 flow to connect with your Google Calendar. Your 
 TimelyMeet is actively in development — lightweight by design, privacy-focused, and distraction-free.
 
 Contributions, feedback, and feature requests are super welcome!
+
+---
+
+### Documentation
+[🛠 Developer Setup](./docs/developer-setup.md)
