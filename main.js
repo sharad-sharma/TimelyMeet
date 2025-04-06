@@ -181,7 +181,7 @@ function sendSystemNotification(meeting) {
 }
 
 function playSound() {
-  const soundPath = path.join(__dirname, "media", "chime.m4a");
+  const soundPath = path.join(__dirname, "media", "ringtone.mp3");
   soundProcess = exec(`afplay "${soundPath}"`);
 }
 
