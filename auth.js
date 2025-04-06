@@ -18,7 +18,7 @@ function authorize(callback) {
   const oAuth2Client = new google.auth.OAuth2(
     client_id,
     client_secret,
-    "http://localhost:3000/oauth2callback"
+    "http://localhost"
   );
 
   // Check if token already exists
@@ -33,14 +33,20 @@ function authorize(callback) {
 
 // Get a new token if one doesn’t exist
 function getAccessToken(oAuth2Client, callback) {
-  const authUrl = oAuth2Client.generateAuthUrl({
-    access_type: "offline",
-    scope: SCOPES,
-  });
-
   const app = express();
-  const server = app.listen(3000, () => {
-    console.log("Listening on port 3000...");
+
+  const server = app.listen(0, () => {
+    const port = server.address().port;
+    const redirectUri = `http://localhost:${port}/oauth2callback`;
+
+    oAuth2Client.redirectUri = redirectUri;
+
+    const authUrl = oAuth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: SCOPES,
+    });
+
+    console.log(`Listening on ${redirectUri}`);
     open(authUrl);
   });
 
