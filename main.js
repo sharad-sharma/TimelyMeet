@@ -60,13 +60,18 @@ function createTray() {
 
   trayIcon.setTemplateImage(true); // Ensure it's visible in dark mode
   tray = new Tray(trayIcon);
-  tray.setToolTip("MeetingBar Clone");
+  tray.setToolTip("Timely Meet");
   updateTrayMenu();
 }
 
 function isMeetingStarted(meetingStartTime) {
   return new Date(meetingStartTime).getTime() <= Date.now();
 }
+
+const toMonospaceDigits = (str) => {
+  const offset = 0x1D7E2 - '0'.charCodeAt(0); // Unicode offset for monospaced digits
+  return str.replace(/\d/g, d => String.fromCodePoint(d.charCodeAt(0) + offset));
+};
 
 function updateTrayMenu() {
   const zoomIcon = nativeImage.createFromPath(path.join(__dirname, "media/zoom.png")).resize({ width: 16, height: 16 });
@@ -82,8 +87,11 @@ function updateTrayMenu() {
 
     // Format time and ensure alignment using padStart()
     const isZoom = link.includes("zoom.us");
-    const startTime = formatTime(start).padStart((isZoom ? 0 : 11), " ");
-    const endTime = formatTime(end).padStart(15, " ");
+    const rawStart = formatTime(start);
+    const rawEnd = formatTime(end);
+
+    const startTime = toMonospaceDigits(rawStart).padStart((isZoom ? 0 : 15), " ");
+    const endTime = toMonospaceDigits(rawEnd).padStart(15, " ");
     const runningIcon = isMeetingStarted(start) ? "🏃" : "";
 
     return {

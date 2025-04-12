@@ -107,6 +107,28 @@
       background-color: inherit;
     }
 
+    /* Card Hover – No Bounce */
+    #window {
+      transition: box-shadow 0.2s ease;
+    }
+
+    #window:hover {
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Button Hover Effects */
+    button {
+      transition: transform 0.15s ease, background-color 0.2s ease;
+    }
+
+    button:hover {
+      transform: scale(1.03);
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
     /* Disable dragging on interactive elements */
     button,
     .btn-group {
