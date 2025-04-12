@@ -2,11 +2,12 @@ const { app, Menu, Tray, shell, Notification, nativeImage, BrowserWindow, ipcMai
 const path = require("path");
 const { exec } = require("child_process");
 const { authorize, getUpcomingEvents } = require("./auth");
+const { calculateNotificationWindowPosition } = require("./utils");
 
 let tray = null;
 let soundProcess = null;
 let meetings = [];
-let notifWindow = null;
+const notifWindows = [];
 
 const dummyMeetings = [
   { title: "Daily Standup", time: "2025-04-07T11:00:00+05:30", start: "2025-04-07T11:00:00+05:30", end: "2025-04-07T12:00:00+05:30", link: "https://zoom.us/j/123456" }
@@ -24,15 +25,14 @@ ipcMain.on("open-external", (event, url) => {
 });
 
 ipcMain.on("dismiss-notification", () => {
-  if (notifWindow) {
-    notifWindow.close();
-    notifWindow = null;
-  }
+  notifWindows.forEach(win => {
+    if (!win.isDestroyed()) win.close();
+  });
+  notifWindows.length = 0; // Clear the array
   stopSound();
 });
 
 app.whenReady().then(() => {
-  // app.dock.setIcon(path.join(__dirname, "media", "icon.jpg"));
   createTray();
   authorize((auth) => {
     // Fetch events immediately
@@ -163,25 +163,25 @@ function sendSystemNotification(meeting) {
     body: `${meeting.title} at ${meeting.time}`,
     silent: false,
   });
+  const win = createMeetingWindow(meeting);
 
   notification.on("click", () => {
     shell.openExternal(meeting.link);
     stopSound();
-    if (notifWindow) notifWindow.close();
+    if (!win.isDestroyed()) win.close();
   });
 
   notification.on("close", () => {
     stopSound();
-    if (notifWindow) notifWindow.close();
+    if (!win.isDestroyed()) win.close();
   });
 
   notification.show();
-
-  createMeetingWindow(meeting);
 }
 
 function playSound() {
   const soundPath = path.join(__dirname, "media", "ringtone.mp3");
+  stopSound();
   soundProcess = exec(`afplay "${soundPath}"`);
 }
 
@@ -193,32 +193,41 @@ function stopSound() {
 }
 
 function createMeetingWindow(meeting) {
-  if (notifWindow) {
-    notifWindow.close(); // Close previous one if open
-  }
+  const { posX, posY } = calculateNotificationWindowPosition(notifWindows);
 
-  notifWindow = new BrowserWindow({
+  const thisWindow = new BrowserWindow({
     width: 360,
     height: 220,
+    x: posX,
+    y: posY,
     title: "Upcoming Meeting",
     alwaysOnTop: true,
     resizable: true,
     frame: false,
     transparent: false,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"), // Required for ipcRenderer
+      preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true
     },
   });
 
-  notifWindow.loadFile(path.join(__dirname, "meeting.html"));
+  notifWindows.push(thisWindow);
 
-  notifWindow.once("ready-to-show", () => {
-    notifWindow.webContents.send("meeting-data", meeting);
+  thisWindow.loadFile(path.join(__dirname, "meeting.html"));
+
+  thisWindow.once("ready-to-show", () => {
+    if (!thisWindow.isDestroyed()) {
+      thisWindow.webContents.send("meeting-data", meeting);
+    }
   });
 
-  notifWindow.on("closed", () => {
-    notifWindow = null;
+  thisWindow.on("closed", () => {
+    const index = notifWindows.indexOf(thisWindow);
+    if (index !== -1) {
+      notifWindows.splice(index, 1);
+    }
   });
+
+  return thisWindow;
 }

@@ -53,4 +53,4 @@ Contributions, feedback, and feature requests are super welcome!
 ---
 
 ### Documentation
-[🛠 Developer Setup](./docs/developer-setup.md)
+🛠 [Developer Setup](./docs/developer-setup.md)
