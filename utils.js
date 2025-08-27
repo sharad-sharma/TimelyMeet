@@ -27,6 +27,20 @@ function calculateNotificationWindowPosition(notifWindows) {
   return {posX, posY};
 }
 
+function isFullDayMeeting(start, end) {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+
+  // Check if the meeting spans the entire day
+  return (
+    startDate.getHours() === 5 &&
+    startDate.getMinutes() === 30 &&
+    endDate.getHours() === 5 &&
+    endDate.getMinutes() === 30
+  );
+}
+
 module.exports = {
   calculateNotificationWindowPosition,
+  isFullDayMeeting,
 }

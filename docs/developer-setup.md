@@ -15,6 +15,7 @@ cd TimelyMeet
 
 ```bash
 npm install
+npm install --save-dev electron-builder
 ```
 
 ## 🔐 3. Set Up Google OAuth Credentials

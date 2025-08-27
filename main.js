@@ -2,16 +2,12 @@ const { app, Menu, Tray, shell, Notification, nativeImage, BrowserWindow, ipcMai
 const path = require("path");
 const { exec } = require("child_process");
 const { authorize, getUpcomingEvents } = require("./auth");
-const { calculateNotificationWindowPosition } = require("./utils");
+const { calculateNotificationWindowPosition, isFullDayMeeting } = require("./utils");
 
 let tray = null;
 let soundProcess = null;
 let meetings = [];
 const notifWindows = [];
-
-const dummyMeetings = [
-  { title: "Daily Standup", time: "2025-04-07T11:00:00+05:30", start: "2025-04-07T11:00:00+05:30", end: "2025-04-07T12:00:00+05:30", link: "https://zoom.us/j/123456" }
-];
 
 app.on("window-all-closed", (e) => {
   // Prevent quitting the app when all windows are closed
@@ -75,7 +71,20 @@ const toMonospaceDigits = (str) => {
 
 function updateTrayMenu() {
   const zoomIcon = nativeImage.createFromPath(path.join(__dirname, "media/zoom.png")).resize({ width: 16, height: 16 });
-  const menuItems = meetings.map(({ start, end, title, link }) => {
+  const fullDayIcon = nativeImage.createFromPath(path.join(__dirname, "media/fullday.png")).resize({ width: 16, height: 16 });
+
+  const fullDayMeetings = meetings.filter(({ start, end }) => isFullDayMeeting(start, end));
+  const regularMeetings = meetings.filter(({ start, end }) => !isFullDayMeeting(start, end));
+
+  // Create menu items for full-day meetings
+  const fullDayMenuItems = fullDayMeetings.map(({ title, link }) => ({
+    label: `${title} (All Day)`,
+    icon: fullDayIcon,
+    click: () => shell.openExternal(link),
+  }));
+
+  // Create menu items for regular meetings
+  const regularMenuItems = regularMeetings.map(({ start, end, title, link }) => {
     const formatTime = (date) => {
       const d = new Date(date);
       return d.toLocaleTimeString([], {
@@ -93,13 +102,21 @@ function updateTrayMenu() {
     const startTime = toMonospaceDigits(rawStart).padStart((isZoom ? 0 : 15), " ");
     const endTime = toMonospaceDigits(rawEnd).padStart(15, " ");
     const runningIcon = isMeetingStarted(start) ? "🏃" : "";
+    const isFullDayMeet = isFullDayMeeting(start, end);
 
     return {
-      label: `${startTime} ${endTime}        ${title} ${runningIcon}`,
+      label: `${startTime} ${endTime}        ${title} ${runningIcon} ${isFullDayMeet ? "(All Day)" : ""}`,
       icon: isZoom ? zoomIcon : null,
       click: () => shell.openExternal(link),
     };
   });
+
+  // Combine full-day and regular meetings with a separator
+  const menuItems = [
+    ...fullDayMenuItems,
+    ...(fullDayMenuItems.length > 0 ? [{ type: "separator" }] : []),
+    ...regularMenuItems,
+  ];
 
   const upcomingMeeting = meetings.filter(meeting => meeting.status === "confirmed" && meeting.title != "Home");
 
